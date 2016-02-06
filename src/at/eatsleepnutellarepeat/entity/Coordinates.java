@@ -1,9 +1,11 @@
 package at.eatsleepnutellarepeat.entity;
 
+import java.util.Comparator;
+
 /**
  * Created by martinmaritsch on 06/02/16.
  */
-public class Coordinates {
+public class Coordinates implements Comparable<Coordinates> {
 
   private int x;
   private int y;
@@ -62,5 +64,13 @@ public class Coordinates {
   @Override
   public String toString() {
     return "Coordinates{" + x + "|" + y + "}";
+  }
+
+  @Override
+  public int compareTo(Coordinates o) {
+    if(this.x != o.x) {
+      return this.x - o.x;
+    }
+    return this.y - o.y;
   }
 }
