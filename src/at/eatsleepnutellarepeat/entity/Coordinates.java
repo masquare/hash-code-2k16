@@ -18,6 +18,11 @@ public class Coordinates {
     this.y = y;
   }
 
+  public Verbesserung(int x, int y) {
+    this.x = x+1;
+    this.y = y+1;
+  }
+
   public int getX() {
     return x;
   }
