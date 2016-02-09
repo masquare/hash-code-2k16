@@ -1,3 +1,5 @@
+//welcome
+
 package at.eatsleepnutellarepeat;
 
 import at.eatsleepnutellarepeat.entity.Scenario;
