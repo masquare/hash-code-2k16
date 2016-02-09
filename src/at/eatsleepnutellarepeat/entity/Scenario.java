@@ -19,6 +19,7 @@ public class Scenario {
 
   private Pair<Integer, Integer> size;
   private Map<Coordinates, Boolean> painting = new TreeMap<Coordinates, Boolean>();
+  private Map<Coordinates, Integer> solution = new TreeMap<Coordinates, Integer>();
 
   private Scenario() {
   }
@@ -47,7 +48,13 @@ public class Scenario {
 
     return scenario;
   }
-
+  
+  public static boolean NeighborsToColor(boolean[] array)
+  {
+      for(boolean b : array) if(!b) return false;
+      return true;
+  }	    
+  
   public void writeToFile(String fileName) throws IOException {
     PrintStream ps = new PrintStream(new FileOutputStream(fileName));
 
@@ -55,11 +62,35 @@ public class Scenario {
     ps.println(count);
     painting.forEach((k, v) -> {
       if(v) {
-        ps.println("PAINT_SQUARE " + k.getX() + " " + k.getY() + " 0");
-        System.out.println("PAINT_SQUARE " + k.getX() + " " + k.getY() + " 0");
+    	  int neighbors = 0;
+    	  painting.forEach((k1,v1) -> {
+    		  if( ( (k.distanceSqrtTo(k1)==1) || (k.distanceSqrtTo(k1)==2) ) && (v1) ) {
+    			//whuppsi\\neighbors++; 
+    		  }
+    	  });
+    	  if(neighbors==8){
+    		  solution.put(k,2);
+    	  }
+    	  else{
+    		  solution.put(k,1);
+    	  }
+      
+    	  
+       // ps.println("PAINT_SQUARE " + k.getX() + " " + k.getY() + " 0");
+       // System.out.println("PAINT_SQUARE " + k.getX() + " " + k.getY() + " 0");
       }
+
     });
 
+    //delete everything unnecessary from solution
+    
+    solution.forEach((k, z) -> {
+    	int r = (z-1)/2;
+    	 ps.println("PAINT_SQUARE " + k.getX() + " " + k.getY() + " " + r);
+         System.out.println("PAINT_SQUARE " + k.getX() + " " + k.getY() + " " + r);
+    });
+    
+    
     ps.flush();
     ps.close();
   }
