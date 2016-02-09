@@ -13,7 +13,7 @@ import java.util.Map;
 import java.util.TreeMap;
 
 /**
- * Created by martinmaritsch on 06/02/16.
+ * Created by martinmaritsch on 06/02/16. nice
  */
 public class Scenario {
 
