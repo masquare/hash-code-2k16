@@ -67,10 +67,10 @@ public class Scenario {
             } else {
               for(Map.Entry<Product, Integer> e : warehouse.products.entrySet()) {
                 if (e.getValue() > 0 && bestOrder.products.containsKey(e.getKey())) {
-                  int available = bestOrder.products.get(e.getKey());
-                  System.out.println("AV: " + available);
+                  int available = Math.min(e.getValue(), bestOrder.products.get(e.getKey()));
+                  //System.out.println("AV: " + available);
                   for (int j = 0; j < available; j++) {
-                    System.out.println("IS: " + (d.getCurrentWeight() + e.getKey().weight));
+                    //System.out.println("IS: " + (d.getCurrentWeight() + e.getKey().weight));
                     if (d.getCurrentWeight() + e.getKey().weight <= maxWeight) {
                       d.loadProduct(e.getKey());
                       d.addCommand(new Load(d, warehouse, e.getKey(), 1));
@@ -261,7 +261,7 @@ public class Scenario {
       int availableCount = e.getValue();
       if(availableCount > 0 && o.products.containsKey(e.getKey())) {
         int neededCount = o.products.get(e.getKey());
-        weight += Math.min(availableCount, neededCount);
+        weight += Math.min(availableCount * e.getKey().weight, neededCount * e.getKey().weight);
       }
     }
     return weight;
