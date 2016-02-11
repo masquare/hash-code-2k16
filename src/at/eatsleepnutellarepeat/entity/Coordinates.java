@@ -18,6 +18,11 @@ public class Coordinates implements Comparable<Coordinates> {
     this.y = y;
   }
 
+  public Coordinates(Coordinates other) {
+    this.x = other.x;
+    this.y = other.y;
+  }
+
   public int getX() {
     return x;
   }
@@ -34,12 +39,12 @@ public class Coordinates implements Comparable<Coordinates> {
     this.y = y;
   }
 
-  public double distanceTo(Coordinates other) {
-    return Math.sqrt((this.x - other.x) * (this.x - other.x) + (this.y - other.y) * (this.y - other.y));
+  public int distanceTo(Coordinates other) {
+    return (int) Math.ceil(Math.sqrt((this.x - other.x) * (this.x - other.x) + (this.y - other.y) * (this.y - other.y)));
   }
 
-  public static double distance(Coordinates one, Coordinates other) {
-    return Math.sqrt((one.x - other.x) * (one.x - other.x) + (one.y - other.y) * (one.y - other.y));
+  public static int distance(Coordinates one, Coordinates other) {
+    return (int) Math.ceil(Math.sqrt((one.x - other.x) * (one.x - other.x) + (one.y - other.y) * (one.y - other.y)));
   }
 
   @Override
