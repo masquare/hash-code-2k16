@@ -53,7 +53,7 @@ public class Scenario {
             }
             if(bestOrderWeight == -1) {
               //TODO refactor
-              warehouses.remove(warehouse);
+              //warehouses.remove(warehouse);
               Warehouse best = getBestWarehouse(d);
               if(best != null) {
                 int distance = Coordinates.distance(best.coordinates, d.position);
@@ -69,7 +69,7 @@ public class Scenario {
                 if (bestOrder.products.containsKey(e.getKey())) {
                   int available = bestOrder.products.get(e.getKey());
                   for (int j = 0; j < available; j++) {
-                    if (warehouse.products.containsKey(e.getKey()) && d.getCurrentWeight() + e.getKey().weight <= maxWeight) {
+                    if (warehouse.products.containsKey(e.getKey()) && warehouse.products.get(e.getKey()) > 0 && d.getCurrentWeight() + e.getKey().weight <= maxWeight) {
                       d.loadProduct(e.getKey());
                       d.addCommand(new Load(d, warehouse, e.getKey(), 1));
                       bestOrder.removeProduct(e.getKey());
@@ -256,7 +256,7 @@ public class Scenario {
     int weight = -1;
     for(Map.Entry<Product, Integer> e : w.products.entrySet()) {
       int availableCount = e.getValue();
-      if(o.products.containsKey(e.getKey())) {
+      if(availableCount > 0 && o.products.containsKey(e.getKey())) {
         int neededCount = o.products.get(e.getKey());
         weight += Math.min(availableCount, neededCount);
       }
@@ -275,6 +275,9 @@ public class Scenario {
           bestWarehouse = w;
         }
       }
+    }
+    if(bestWarehouse == null) {
+      System.out.println("NULL");
     }
     return bestWarehouse; // TODO what if only one warehouse available?
   }
@@ -302,7 +305,9 @@ public class Scenario {
       for(Map.Entry<Product, Integer> e : order.products.entrySet()) {
         if(w.products.containsKey(e.getKey())) {
           int available = w.products.get(e.getKey());
-          weight += Math.min(available * e.getKey().weight, e.getValue() * e.getKey().weight);
+          if(available > 0) {
+            weight += Math.min(available * e.getKey().weight, e.getValue() * e.getKey().weight);
+          }
         }
       }
       if(weight < bestWeight || bestWeight == -1) {

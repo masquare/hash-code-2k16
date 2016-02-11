@@ -36,9 +36,9 @@ public class Order {
   public void removeProduct(Product product) {
     if(products.containsKey(product)) {
       products.put(product, products.get(product) - 1);
-      if(products.get(product) <= 0) {
+      /*if(products.get(product) <= 0) {
         products.remove(product);
-      }
+      }*/
     }
   }
 }
