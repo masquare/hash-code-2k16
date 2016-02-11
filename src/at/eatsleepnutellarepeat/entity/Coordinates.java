@@ -3,7 +3,7 @@ package at.eatsleepnutellarepeat.entity;
 /**
  * Created by martinmaritsch on 06/02/16.
  */
-public class Coordinates {
+public class Coordinates implements Comparable<Coordinates> {
 
   private int x;
   private int y;
@@ -35,11 +35,11 @@ public class Coordinates {
   }
 
   public double distanceTo(Coordinates other) {
-    return Math.sqrt((this.x - other.x) * (this.x - other.x) + (this.x - other.x) * (this.x - other.x));
+    return Math.sqrt((this.x - other.x) * (this.x - other.x) + (this.y - other.y) * (this.y - other.y));
   }
 
   public static double distance(Coordinates one, Coordinates other) {
-    return Math.sqrt((one.x - other.x) * (one.x - other.x) + (one.x - other.x) * (one.x - other.x));
+    return Math.sqrt((one.x - other.x) * (one.x - other.x) + (one.y - other.y) * (one.y - other.y));
   }
 
   @Override
@@ -62,5 +62,13 @@ public class Coordinates {
   @Override
   public String toString() {
     return "Coordinates{" + x + "|" + y + "}";
+  }
+
+  @Override
+  public int compareTo(Coordinates o) {
+    if(this.x != o.x) {
+      return this.x - o.x;
+    }
+    return this.y - o.y;
   }
 }
