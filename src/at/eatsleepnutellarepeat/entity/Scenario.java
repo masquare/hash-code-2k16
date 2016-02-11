@@ -66,10 +66,12 @@ public class Scenario {
               }
             } else {
               for(Map.Entry<Product, Integer> e : warehouse.products.entrySet()) {
-                if (bestOrder.products.containsKey(e.getKey())) {
+                if (e.getValue() > 0 && bestOrder.products.containsKey(e.getKey())) {
                   int available = bestOrder.products.get(e.getKey());
+                  System.out.println("AV: " + available);
                   for (int j = 0; j < available; j++) {
-                    if (warehouse.products.containsKey(e.getKey()) && warehouse.products.get(e.getKey()) > 0 && d.getCurrentWeight() + e.getKey().weight <= maxWeight) {
+                    System.out.println("IS: " + (d.getCurrentWeight() + e.getKey().weight));
+                    if (d.getCurrentWeight() + e.getKey().weight <= maxWeight) {
                       d.loadProduct(e.getKey());
                       d.addCommand(new Load(d, warehouse, e.getKey(), 1));
                       bestOrder.removeProduct(e.getKey());
@@ -85,6 +87,7 @@ public class Scenario {
               for(Map.Entry<Product, Integer> e : d.products.entrySet()) {
                 d.addCommand(new Deliver(d, bestOrder, e.getKey(), e.getValue()));
               }
+              d.products = new TreeMap<>();
               d.position = new Coordinates(bestOrder.coordinates);
             }
           } else if (isDroneAtOrder(d)){

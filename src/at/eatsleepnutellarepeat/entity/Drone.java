@@ -1,6 +1,8 @@
 package at.eatsleepnutellarepeat.entity;
 
+import at.eatsleepnutellarepeat.entity.command.Deliver;
 import at.eatsleepnutellarepeat.entity.command.ICommand;
+import at.eatsleepnutellarepeat.entity.command.Load;
 import at.eatsleepnutellarepeat.entity.command.Move;
 
 import java.util.ArrayList;
@@ -51,7 +53,7 @@ public class Drone implements Comparable<Drone> {
   public boolean tick() {
     if(!commands.isEmpty()) {
       ICommand c = commands.remove(0);
-      if(!(c instanceof Move)) {
+      if(c instanceof Deliver || c instanceof Load) {
         processedCommands.add(c);
       }
       return commands.isEmpty();
