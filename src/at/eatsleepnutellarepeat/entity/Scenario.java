@@ -35,7 +35,8 @@ public class Scenario {
 
   public void calculate() {
     for(int round = 0; round < turnsCount; round++) {
-      System.out.println("Round: " + round);
+      //if(round < 100) 
+    	//  System.out.println("Round: " + round);
       for(Drone d : drones) {
         if(d.isAvailable()) {
           if(isDroneAtWarehouse(d)) {
@@ -246,22 +247,41 @@ public class Scenario {
     return bestWarehouse;
   }
 
+  //Herumpfuschen
   public Order getBestOrder(Drone drone, Warehouse warehouse) {
-    double distance = Double.POSITIVE_INFINITY;
+    double bestValue = Double.POSITIVE_INFINITY;
     Order bestOrder = null;
 
     if(orders.size() == 1) {
       return orders.get(0);
     }
+//    for(Order order : orders) {
+//        if(!order.coordinates.equals(drone.coordinates)) {
+//          //int newDistance = Coordinates.distance(order.coordinates, drone.coordinates);
+//
+//          double newDistance = 1000 / (order.storage.getWeight() + 0.001) + //prioritize close to finish orders
+//                               30 * warehouse.storage.containsWeightOfOtherStorage(order.storage) / (order.storage.getWeight() + 0.001) +
+//                               1000 * Coordinates.distance(order.coordinates, drone.coordinates) / Math.sqrt(rowsCount*rowsCount + columnsCount*columnsCount);
+//          if(warehouse.storage.containsWeightOfOtherStorage(order.storage) != 0 && newDistance < distance) {
+//            distance = newDistance;
+//            bestOrder = order;
+//          }
+//        }
+//      }
+    
     for(Order order : orders) {
       if(!order.coordinates.equals(drone.coordinates)) {
-        //int newDistance = Coordinates.distance(order.coordinates, drone.coordinates);
-
-        double newDistance = 1000 / (order.storage.getWeight() + 0.001) + //prioritize close to finish orders
-                             30 * warehouse.storage.containsWeightOfOtherStorage(order.storage) / (order.storage.getWeight() + 0.001) +
-                             1000 * Coordinates.distance(order.coordinates, drone.coordinates) / Math.sqrt(rowsCount*rowsCount + columnsCount*columnsCount);
-        if(warehouse.storage.containsWeightOfOtherStorage(order.storage) != 0 && newDistance < distance) {
-          distance = newDistance;
+        double lambda = 0.001; //Experimental Constant
+    	
+        double distance = 0.1 * Coordinates.distance(order.coordinates, drone.coordinates);
+    	
+    	double duration = 0.1 * distance * 
+    		Math.max(1, order.storage.getWeight() / this.maxWeight);
+        
+    	double value = lambda * distance + (1-lambda) * duration;
+    	
+    	if(warehouse.storage.containsWeightOfOtherStorage(order.storage) != 0 && value < bestValue) {
+          bestValue = value;
           bestOrder = order;
         }
       }
@@ -269,8 +289,9 @@ public class Scenario {
     return bestOrder;
   }
 
+  //Herumpfuschen
   private Warehouse getBestWarehouseForOrder(Drone drone, Order order) {
-    double bestWeight = Double.POSITIVE_INFINITY;
+    double bestValue = Double.POSITIVE_INFINITY;
     Warehouse bestWarehouse = null;
     if(warehouses.size() == 1) {
       return warehouses.get(0);
@@ -278,13 +299,30 @@ public class Scenario {
     for(Warehouse warehouse : warehouses) {
       //int tempWeight = warehouse.storage.getBestSubStorage(order.storage, maxWeight).getWeight();
 
-      double tempWeight = 10000 / (order.storage.getWeight() + 0.001) + //prioritize close to finish orders
-                          30 * warehouse.storage.containsWeightOfOtherStorage(order.storage) / (order.storage.getWeight() + 0.001) +
-                          1000 * Coordinates.distance(order.coordinates, drone.coordinates) / Math.sqrt(rowsCount*rowsCount + columnsCount*columnsCount);
+      //double tempWeight = 10000 / (order.storage.getWeight() + 0.001) + //prioritize close to finish orders
+      //                    30 * warehouse.storage.containsWeightOfOtherStorage(order.storage) / (order.storage.getWeight() + 0.001) +
+      //                    1000 * Coordinates.distance(order.coordinates, drone.coordinates) / Math.sqrt(rowsCount*rowsCount + columnsCount*columnsCount);
+	 //
 
+      //if(warehouse.storage.containsWeightOfOtherStorage(order.storage) != 0 && tempWeight < bestWeight) {
+      //  bestWeight = tempWeight;
+      //  bestWarehouse = warehouse;
+      //}
+      //System.out.println("maxValue = " + bestValue);
+    	
+      double Value =  1.0 * Coordinates.distance(drone.coordinates, warehouse.coordinates) /
+    		  Math.min(warehouse.storage.containsWeightOfOtherStorage(order.storage),
+    				  this.maxWeight);
+      		//System.out.println(Coordinates.distance(drone.coordinates, warehouse.coordinates) + " ist der Abstand");
+      		//System.out.println(Math.max(warehouse.storage.containsWeightOfOtherStorage(order.storage),
+  			//	  this.maxWeight) + " ist das Gewicht");
+      		//System.out.println(Value + " with maxWeight = " + this.maxWeight);
+    		  
+    		  //30 * warehouse.storage.containsWeightOfOtherStorage(order.storage) / (order.storage.getWeight() + 0.001) +
+            
 
-      if(warehouse.storage.containsWeightOfOtherStorage(order.storage) != 0 && tempWeight < bestWeight) {
-        bestWeight = tempWeight;
+      if(warehouse.storage.containsWeightOfOtherStorage(order.storage) != 0 && Value < bestValue) {
+        bestValue = Value;
         bestWarehouse = warehouse;
       }
     }

@@ -14,5 +14,7 @@ public class Main {
         Scenario scenario = Scenario.parseFromFile(args[0]);
         scenario.calculate();
         scenario.writeToFile(args[1]);
+        
+        System.out.println("Done");
     }
 }
