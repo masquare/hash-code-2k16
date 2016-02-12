@@ -24,13 +24,8 @@ public class Deliver implements ICommand {
 
   @Override
   public void execute() {
-    /*if(drone.products.containsKey(product)) {
-      drone.products.put(product, drone.products.get(product) - count);
-    } else {
-      drone.products.put(product, count);
-    }
-
-    order.products.put(product, order.products.get(product) - count);*/
+    drone.storage.removeProduct(product, count);
+    order.storage.removeProduct(product, count);
   }
 
   @Override

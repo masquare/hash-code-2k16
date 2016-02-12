@@ -23,13 +23,8 @@ public class Load implements ICommand {
 
   @Override
   public void execute() {
-    /*if(drone.products.containsKey(product)) {
-      drone.products.put(product, drone.products.get(product) + count);
-    } else {
-      drone.products.put(product, count);
-    }
-
-    warehouse.products.put(product, warehouse.products.get(product) - count);*/
+    //drone.storage.insertProduct(product, count);
+    //warehouse.storage.removeProduct(product, count);
   }
 
   @Override

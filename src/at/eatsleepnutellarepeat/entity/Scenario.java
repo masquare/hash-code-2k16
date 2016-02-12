@@ -34,84 +34,71 @@ public class Scenario {
   }
 
   public void calculate() {
-    // do proper calculations
-
     for(int round = 0; round < turnsCount; round++) {
       System.out.println("Round: " + round);
       for(Drone d : drones) {
-        if(!d.isBusy()) {
+        if(d.isAvailable()) {
           if(isDroneAtWarehouse(d)) {
             Warehouse warehouse = getDroneWarehouse(d);
-            int bestOrderWeight = -1;
-            Order bestOrder = null;
-            for(Order o : orders) {
-              int orderWeight = calculateMaxDeliverableWeight(warehouse, o);
-              if(orderWeight > bestOrderWeight) {
-                bestOrderWeight = orderWeight;
-                bestOrder = o;
-              }
-            }
-            if(bestOrderWeight == -1) {
-              //TODO refactor
-              //warehouses.remove(warehouse);
-              Warehouse best = getBestWarehouse(d);
-              if(best != null) {
-                int distance = Coordinates.distance(best.coordinates, d.position);
-                for(int i = 0; i < distance; i++) {
-                  d.addCommand(new Move());
-                }
-                d.position = new Coordinates(best.coordinates);
+            Order bestOrder = getBestOrder(d, warehouse);
+            if(bestOrder == null) {
+              // move to next Warehouse
+              Warehouse bestWarehouse = getBestWarehouse(d);
+              if(bestWarehouse != null) {
+                d.moveToCoordinates(bestWarehouse.coordinates);
               } else {
                 d.addCommand(new Wait(d));
               }
             } else {
-              for(Map.Entry<Product, Integer> e : warehouse.products.entrySet()) {
-                if (e.getValue() > 0 && bestOrder.products.containsKey(e.getKey())) {
-                  int available = Math.min(e.getValue(), bestOrder.products.get(e.getKey()));
-                  //System.out.println("AV: " + available);
-                  for (int j = 0; j < available; j++) {
-                    //System.out.println("IS: " + (d.getCurrentWeight() + e.getKey().weight));
-                    if (d.getCurrentWeight() + e.getKey().weight <= maxWeight) {
-                      d.loadProduct(e.getKey());
-                      d.addCommand(new Load(d, warehouse, e.getKey(), 1));
-                      bestOrder.removeProduct(e.getKey());
-                      warehouse.takeProduct(e.getKey());
-                    }
-                  }
-                }
+              // execute bestOrder
+              d.storage = warehouse.storage.getBestSubStorage(bestOrder.storage, maxWeight);
+
+              // build commands for loading
+              Iterator<Map.Entry<Product, Integer>> it = d.storage.getProductsIterator();
+              while(it.hasNext()) {
+                Map.Entry<Product, Integer> entry = it.next();
+                d.addCommand(new Load(d, warehouse, entry.getKey(), entry.getValue()));
               }
-              int distance = Coordinates.distance(bestOrder.coordinates, d.position);
-              for (int j = 0; j < distance; j++) {
-                d.addCommand(new Move());
+
+              // remove stuff from warehouse where we took it from
+              warehouse.storage.removeAllFromStorage(d.storage);
+
+              // move to order
+              d.moveToCoordinates(bestOrder.coordinates);
+
+              // build commands for unloading
+              it = d.storage.getProductsIterator();
+              while(it.hasNext()) {
+                Map.Entry<Product, Integer> entry = it.next();
+                d.addCommand(new Deliver(d, bestOrder, entry.getKey(), entry.getValue()));
               }
-              for(Map.Entry<Product, Integer> e : d.products.entrySet()) {
-                d.addCommand(new Deliver(d, bestOrder, e.getKey(), e.getValue()));
+              bestOrder.storage.removeAllFromStorage(d.storage);
+
+              d.storage.removeAllFromStorage(new Storage(d.storage));
+
+              if(d.storage.getWeight() != 0) {
+                throw new RuntimeException("Drone should be empty...");
               }
-              d.products = new TreeMap<>();
-              d.position = new Coordinates(bestOrder.coordinates);
             }
           } else if (isDroneAtOrder(d)){
             Order order = getDroneOrder(d);
             if(order.isFinished()) {
               orders.remove(order);
+
+              // fly to next best warehouse
+              Warehouse warehouse = getBestWarehouse(d);
+              d.moveToCoordinates(warehouse.coordinates);
             } else {
-              // fly to warehouse
+              // fly to best warehouse for order
               Warehouse warehouse = getBestWarehouseForOrder(d, order);
-              int distance = Coordinates.distance(warehouse.coordinates, d.position);
-              for(int i = 0; i < distance; i++) {
-                d.addCommand(new Move());
-              }
-              d.position = new Coordinates(warehouse.coordinates);
+              d.moveToCoordinates(warehouse.coordinates);
             }
 
           } else {
-            // drone is at 0|0
+            // fly to next best warehouse
             Warehouse warehouse = getBestWarehouse(d);
-            int distance = Coordinates.distance(warehouse.coordinates, d.position);
-            for(int i = 0; i < distance; i++) {
-              d.addCommand(new Move());
-            }
-            d.position = new Coordinates(warehouse.coordinates);
+            d.moveToCoordinates(warehouse.coordinates);
+            //throw new IllegalStateException("Must never land here");
           }
         }
       }
@@ -165,12 +152,23 @@ public class Scenario {
       Coordinates c = new Coordinates(Integer.parseInt(coordElements[0]), Integer.parseInt(coordElements[1]));
       String[] productCount = linesIt.next().split(" ");
 
-      TreeMap<Product, Integer> products = new TreeMap<>();
+      Storage storage = new Storage();
       for(int j = 0; j < productCount.length; j++) {
-        products.put(scenario.products.get(j), Integer.parseInt(productCount[j]));
+        int count = Integer.parseInt(productCount[j]);
+        if(count > 0) {
+          storage.insertProduct(scenario.products.get(j), count);
+        }
       }
+      scenario.warehouses.add(new Warehouse(i, c, storage));
 
-      scenario.warehouses.add(new Warehouse(i, c, products));
+      //scenario.warehouses.get(i).storage.getProductsIterator().forEachRemaining(e -> System.out.println(e.getKey().weight + " -> " + e.getValue()));
+
+      // at the beginning all drones are at the first warehouse
+      if(i == 0) {
+        for(Drone d : scenario.drones) {
+          d.coordinates = new Coordinates(c);
+        }
+      }
     }
 
     // ORDERS
@@ -183,17 +181,12 @@ public class Scenario {
 
       String[] productIds = linesIt.next().split(" ");
 
-      TreeMap<Product, Integer> products = new TreeMap<>();
+      Storage storage = new Storage();
       for (int j = 0; j < productIds.length; j++) {
-        Product product = scenario.products.get(Integer.parseInt(productIds[j]));
-        if (products.containsKey(product)) {
-          products.put(product, products.get(product) + 1);
-        } else {
-          products.put(product, 1);
-        }
+        storage.insertProduct(scenario.products.get(Integer.parseInt(productIds[j])));
       }
 
-      scenario.orders.add(new Order(i, c, products));
+      scenario.orders.add(new Order(i, c, storage));
     }
 
     return scenario;
@@ -220,102 +213,79 @@ public class Scenario {
   }
 
   public boolean isDroneAtWarehouse(Drone d) {
-    for(Warehouse w : warehouses) {
-      if (w.coordinates.equals(d.position)) {
-        return true;
-      }
-    }
-    return false;
+    return warehouses.stream().anyMatch(warehouse -> warehouse.coordinates.equals(d.coordinates));
   }
 
   public Warehouse getDroneWarehouse(Drone d) {
-    for(Warehouse w : warehouses) {
-      if (w.coordinates.equals(d.position)) {
-        return w;
-      }
-    }
-    return null;
+    return warehouses.stream().filter(warehouse -> warehouse.coordinates.equals(d.coordinates)).findFirst().orElse(null);
   }
 
   public boolean isDroneAtOrder(Drone d) {
-    for(Order o : orders) {
-      if (o.coordinates.equals(d.position)) {
-        return true;
-      }
-    }
-    return false;
+    return orders.stream().anyMatch(order -> order.coordinates.equals(d.coordinates));
   }
 
   public Order getDroneOrder(Drone d) {
-    for(Order o : orders) {
-      if (o.coordinates.equals(d.position)) {
-        return o;
-      }
-    }
-    return null;
-  }
-
-  public int calculateMaxDeliverableWeight(Warehouse w, Order o) {
-    int weight = -1;
-    for(Map.Entry<Product, Integer> e : w.products.entrySet()) {
-      int availableCount = e.getValue();
-      if(availableCount > 0 && o.products.containsKey(e.getKey())) {
-        int neededCount = o.products.get(e.getKey());
-        weight += Math.min(availableCount * e.getKey().weight, neededCount * e.getKey().weight);
-      }
-    }
-    return weight;
+    return orders.stream().filter(order -> order.coordinates.equals(d.coordinates)).findFirst().orElse(null);
   }
 
   public Warehouse getBestWarehouse(Drone d) {
     int distance = -1;
     Warehouse bestWarehouse = null;
+    if(warehouses.size() == 1) {
+      return warehouses.get(0);
+    }
     for(Warehouse w : warehouses) {
-      if(!w.coordinates.equals(d.position)) {
-        int newDistance = Coordinates.distance(w.coordinates, d.position);
-        if(newDistance < distance || distance == -1) {
-          distance = newDistance;
+      if(!w.coordinates.equals(d.coordinates)) {
+        int tempDistance = d.coordinates.distanceTo(w.coordinates);
+        if(tempDistance < distance || distance == -1) {
+          distance = tempDistance;
           bestWarehouse = w;
         }
       }
     }
-    if(bestWarehouse == null) {
-      System.out.println("NULL");
-    }
-    return bestWarehouse; // TODO what if only one warehouse available?
+    return bestWarehouse;
   }
 
-  public Order getBestOrder(Drone d) {
-    int distance = -1;
+  public Order getBestOrder(Drone drone, Warehouse warehouse) {
+    double distance = Double.POSITIVE_INFINITY;
     Order bestOrder = null;
-    for(Order o : orders) {
-      if(!o.coordinates.equals(d.position)) {
-        int newDistance = Coordinates.distance(o.coordinates, d.position);
-        if(newDistance < distance) {
+
+    if(orders.size() == 1) {
+      return orders.get(0);
+    }
+    for(Order order : orders) {
+      if(!order.coordinates.equals(drone.coordinates)) {
+        //int newDistance = Coordinates.distance(order.coordinates, drone.coordinates);
+
+        double newDistance = 1000 / (order.storage.getWeight() + 0.001) + //prioritize close to finish orders
+                             30 * warehouse.storage.containsWeightOfOtherStorage(order.storage) / (order.storage.getWeight() + 0.001) +
+                             1000 * Coordinates.distance(order.coordinates, drone.coordinates) / Math.sqrt(rowsCount*rowsCount + columnsCount*columnsCount);
+        if(warehouse.storage.containsWeightOfOtherStorage(order.storage) != 0 && newDistance < distance) {
           distance = newDistance;
-          bestOrder = o;
+          bestOrder = order;
         }
       }
     }
     return bestOrder;
   }
 
-  private Warehouse getBestWarehouseForOrder(Drone d, Order order) {
-    int bestWeight = -1;
+  private Warehouse getBestWarehouseForOrder(Drone drone, Order order) {
+    double bestWeight = Double.POSITIVE_INFINITY;
     Warehouse bestWarehouse = null;
-    for(Warehouse w : warehouses) {
-      int weight = 0;
-      for(Map.Entry<Product, Integer> e : order.products.entrySet()) {
-        if(w.products.containsKey(e.getKey())) {
-          int available = w.products.get(e.getKey());
-          if(available > 0) {
-            weight += Math.min(available * e.getKey().weight, e.getValue() * e.getKey().weight);
-          }
-        }
-      }
-      if(weight < bestWeight || bestWeight == -1) {
-        bestWeight = weight;
-        bestWarehouse = w;
+    if(warehouses.size() == 1) {
+      return warehouses.get(0);
+    }
+    for(Warehouse warehouse : warehouses) {
+      //int tempWeight = warehouse.storage.getBestSubStorage(order.storage, maxWeight).getWeight();
+
+      double tempWeight = 10000 / (order.storage.getWeight() + 0.001) + //prioritize close to finish orders
+                          30 * warehouse.storage.containsWeightOfOtherStorage(order.storage) / (order.storage.getWeight() + 0.001) +
+                          1000 * Coordinates.distance(order.coordinates, drone.coordinates) / Math.sqrt(rowsCount*rowsCount + columnsCount*columnsCount);
+
+
+      if(warehouse.storage.containsWeightOfOtherStorage(order.storage) != 0 && tempWeight < bestWeight) {
+        bestWeight = tempWeight;
+        bestWarehouse = warehouse;
       }
     }
     return bestWarehouse;
